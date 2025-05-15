@@ -1,3 +1,56 @@
+# How to use
+_Note: assumes Unix terminal (i.e. Linux or MacOS). There are terminal emulators or WSL for Windows, or you can translate the commands into PowerShell, etc._
+
+## One-time setup
+
+### 1. Install
+
+1. Clone this repo. Open a terminal:
+
+```shell
+cd some-parent-directory
+git clone git@github.com:djsmedes/julia-nbconvert-helper.git
+```
+
+2. Install Docker Desktop: [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/)
+
+### 2. Build Docker image
+
+1. Make sure Docker is actually running. You may need to set up OS permissions to allow it to run in the background.
+
+2. Open a terminal; go to the directory where you cloned this repository, e.g.:
+
+```shell
+cd some-parent-directory/julia-nbconvert-helper
+```
+3. Run the command that builds the image:
+
+_This may take a long time - 15-30+ minutes depending on your connection speed_
+
+```shell
+docker build -t texlive-nbconvert .
+```
+
+## Each-time actions
+
+### 3. Run a Jupyter notebook through it
+
+1. Make sure Docker is running.
+
+2. Open a terminal; go to the directory where your Jupyter Notebook is, e.g.:
+
+```shell
+cd totally-different-directory/my-julia-project
+```
+
+3. Run the following command, substituting your actual filename in for `your.ipynb`
+
+```shell
+docker run --rm -v "$(pwd):/data" texlive-nbconvert jupyter nbconvert your.ipynb --to pdf --template mono_unicode
+```
+
+# Explanation of purpose and function
+
 This repo exists to address a few challenges.
 
 Using Julia in a Jupyter notebook is great, but if you want to convert that notebook into a PDF, there is no good way to do it. Converting to HTML and then converting that to a PDF using a browser's "print to PDF" function results in the code boxes getting cut off. Converting with `jupyter nbconvert` causes the unicode characters in your Julia code, like ≤, to simply disappear. One of the cool features of Julia is the unicode support - I don't want to give that up!
@@ -32,14 +85,20 @@ Anyway, the final problem worth solving is not wanting a local LaTeX install, be
 
 The result is a Dockerfile with supporting template override files which you can use to build a Docker image locally and then run Julia .ipynb files through it to produce PDFs that actually have your Unicode characters.
 
-# Build Docker image
+# Troubleshooting
+
+If you are using LaTeX in markdown cells in your notebook, you may come across issues where some LaTeX command isn't defined, even though VSCode or convert-to-html handled it just fine. This is because these features use MathJAX, while convert-to-PDF functionality uses "proper LaTeX" and these differ in what is provided.
+
+If you need to add stuff to the LaTeX template, the easiest way is to modify the file `mono_unicode.tex.j2` of this repository. I've already added `\argmin` and `\argmax` commands, which are not present by default with the `amsmath` package. **Remember to rebuild** the image as in Step 2 of the One-Time Setup section above.
+
+If you have any problems, feel free to open an issue in GitHub: [https://github.com/djsmedes/julia-nbconvert-helper/issues](https://github.com/djsmedes/julia-nbconvert-helper/issues). I can't guarantee timely or total support, but I will try to help.
+
+## Inspecting the container
+The following should open an interactive shell in the container so you can inspect its files:
 
 ```shell
-docker build -t texlive-nbconvert .
+docker run -it texlive-nbconvert /bin/bash
 ```
 
-# Run a Jupyter notebook through it
-
-```shell
-docker run --rm -v "$(pwd):/data" texlive-nbconvert jupyter nbconvert your.ipynb --to pdf --template mono_unicode
-```
+## LaTeX template file locations
+The relevant templates for this project are stored in the container at `/env/share/jupyter/nbconvert/templates/latex`. `base.tex.j2` is the core file where e.g. `\usepackage{amsmath}` happens.
