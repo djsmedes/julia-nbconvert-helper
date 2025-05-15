@@ -4,6 +4,7 @@ RUN apt-get update && apt-get install -y \
     python3 python3-pip \
     python3-venv \
     pandoc \
+    inkscape \
     && rm -rf /var/lib/apt/lists/*
 
 # Some kind of permissions thing goes wrong if don't use venv
